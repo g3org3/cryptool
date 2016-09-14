@@ -2,8 +2,8 @@
 
 usage() {
   echo -e "\n USAGE:";
-  echo -e "  ./cryptool.sh --encrypt <filename> <public_key>"
-  echo -e "  ./cryptool.sh --decrypt <filename> <private_key> <tar.gz>"
+  echo -e "  `basename $0` --encrypt <filename> <public_key>"
+  echo -e "  `basename $0` --decrypt <tar.gz> <private_key>"
   echo -e "\n More info"
   echo -e "  public_key\t PKCS8 public key"
   echo -e "  filename\t Path of the file to encrypt"
@@ -11,7 +11,7 @@ usage() {
   echo -e "\n FAQ"
   echo -e "  common error: unable to load Public Key"
   echo -e "  fix -> ssh-keygen -e -f ~/.ssh/id_rsa.pub -m PKCS8 > ~/.ssh/id_rsa.pub.pkcs8"
-  echo -e "  or you can run ./cryptool.sh --fix <public_key>"
+  echo -e "  or you can run `basename $0` --fix <public_key>"
   echo -e ""
 }
 
@@ -35,13 +35,31 @@ decrypt() {
 }
 
 fix() {
-  ssh-keygen -e -f $1 -m PKCS8 > ~/.ssh/$1.pkcs8
+  NAME=`basename $1`
+  ssh-keygen -e -f $1 -m PKCS8 > ~/.ssh/$NAME.pkcs8
 }
 
-if [[ "$1" = "--encrypt" && -n "$2" && -n "$3" ]]; then
+# rel() {
+#   filename=$(basename "$1")
+#   echo $filename
+#   extension="${filename##*.}"
+#   filename="${filename%.*}"
+#   echo $filename
+#   echo $extension
+# }
+
+ls=`cat ~/.ssh/id_rsa.pub.pkcs8 2> /dev/null`
+private=`cat ~/.ssh/id_rsa 2> /dev/null`
+if [[ -n "$ls" && ("$1" = "--encrypt" || "$1" = "-e") && -n "$2" ]]; then
+  encrypt $2 ~/.ssh/id_rsa.pub.pkcs8
+elif [[ ("$1" = "--encrypt" || "$1" = "-e") && -n "$2" && -n "$3" ]]; then
   encrypt $2 $3
-elif [[ "$1" = "--decrypt" && -n "$2" && -n "$3" && -n "$4" ]]; then
-  decrypt $2 $3 $4
+elif [[ -n "$private" && ("$1" = "--decrypt" || "$1" = "-d") && -n "$2" ]]; then
+  decrypt $2 ~/.ssh/id_rsa $3
+elif [[ ("$1" = "--decrypt" || "$1" = "-d") && -n "$2" && -n "$3" ]]; then
+  filename=`basename $2`
+  filename="${filename%.*}"
+  decrypt $filename $2 $3
 elif [[ "$1" = "--fix" && -n "$2" ]]; then
   fix $2
 else
